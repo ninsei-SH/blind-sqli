@@ -1,5 +1,8 @@
 # Blind SQLi Extractor + Practice Lab
 
+[![self-test](https://github.com/ninsei-SH/blind-sqli/actions/workflows/self-test.yml/badge.svg)](https://github.com/ninsei-SH/blind-sqli/actions/workflows/self-test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A boolean/time-based **blind SQL injection extraction framework** (`blind_sqli.py`)
 and a **deliberately-vulnerable practice target** (`vuln_app.py`) to learn it and
 validate it against — like a tiny, self-contained DVWA for one specific bug class.
