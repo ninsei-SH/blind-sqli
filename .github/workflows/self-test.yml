@@ -1,0 +1,28 @@
+name: self-test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  self-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+    name: self-test (py${{ matrix.python-version }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run offline self-test (no dependencies, stdlib only)
+        # Drives the full extraction engine against an in-memory SQLite DB.
+        # No network, no target. Exits non-zero if any of the 46 checks fail.
+        env:
+          PYTHONUTF8: "1"   # force UTF-8 mode regardless of runner locale
+        run: python3 blind_sqli.py --self-test
