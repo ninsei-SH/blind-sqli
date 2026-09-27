@@ -428,6 +428,24 @@ python3 blind_sqli.py --self-test   # offline engine verification (46 checks)
 
 ---
 
+## Companion tooling — Active Directory / NTLM relay
+
+For AD engagements this repo ships a defensive-first relay toolkit (same
+stdlib-first, `--self-test`, RoE-throttled ethos as the SQLi extractor):
+
+| File | What it is |
+|------|------------|
+| `relay_auditor.py` | **Read-only** posture auditor — reports which in-scope hosts are relay-*susceptible* (SMB signing not required, LLMNR/NBT-NS/mDNS responders live, LDAP EPA). Never captures or relays anything. |
+| `posture_lab.py` | Loopback-only SMB-signing posture lab to validate the auditor offline (mirrors `vuln_app.py`). |
+| `relay_orchestrator.py` | Scoped launcher that drives the audited public tools (Responder / Impacket `ntlmrelayx` / `mitm6`) behind a **hard allowlist + testing-window gate**, with evidence logging. Dry-run by default. |
+| `detection/` | Sigma + Splunk/Defender rules for LLMNR/NBT-NS poisoning, NTLM relay, and ADCS ESC8. |
+| `docs/relay_runbook.md` | Coerce → relay → loot runbook using the public tools, with the guardrail flags. |
+| `ROE.md` | Per-engagement rules-of-engagement template that feeds `--allowlist` / `--testing-window`. |
+
+See `CLAUDE.md` for the toolkit's scope and conventions.
+
+---
+
 ## Legal & ethics
 
 This software is provided for **authorized security testing and education only**.

@@ -26,3 +26,17 @@ jobs:
         env:
           PYTHONUTF8: "1"   # force UTF-8 mode regardless of runner locale
         run: python3 blind_sqli.py --self-test
+
+      - name: Relay posture auditor self-test (offline, loopback lab)
+        # Stands up two loopback SMB-posture endpoints and checks the signing
+        # oracle against both. Read-only; no network, no target.
+        env:
+          PYTHONUTF8: "1"
+        run: python3 relay_auditor.py --self-test
+
+      - name: Relay orchestrator self-test (offline, launches nothing)
+        # Exercises the allowlist + testing-window gates and command
+        # construction. Does not require Responder/Impacket to be installed.
+        env:
+          PYTHONUTF8: "1"
+        run: python3 relay_orchestrator.py --self-test

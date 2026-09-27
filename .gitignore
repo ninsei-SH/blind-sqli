@@ -11,3 +11,7 @@ venv/
 
 # OS
 .DS_Store
+
+# Engagement scope + evidence (never commit real targets or captured output)
+scope/allowlist.txt
+evidence/
