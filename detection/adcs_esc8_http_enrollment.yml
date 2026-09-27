@@ -1,0 +1,55 @@
+# NOTE: the `id` below is a FIXED PLACEHOLDER (all-threes UUID). Sigma requires a
+# stable per-rule UUIDv4 — regenerate a fresh one per deployment and paste it in,
+# e.g.  python3 -c "import uuid; print(uuid.uuid4())"
+# Do not ship two rules that share this placeholder.
+title: ADCS Web Enrollment Over HTTP / Relay-to-ADCS (ESC8)
+id: 33333333-3333-3333-3333-333333333333   # placeholder — regenerate per deployment
+status: experimental
+description: >
+    Detects use of the AD CS web-enrollment endpoint (/certsrv) in the two shapes
+    that make up ESC8. First, the exposure: /certsrv served over cleartext HTTP
+    (s-port 80), which lets a coerced NTLM handshake be relayed to the CA.
+    Second, the abuse signature: a machine account ($) submitting a certificate
+    request through the web pages — normal machine enrollment uses DCOM/RPC, not
+    the web UI, so a computer account on /certsrv is the classic relay-to-ADCS
+    footprint (ntlmrelayx --target http://ca/certsrv). Run against the CA's IIS
+    (W3C) logs.
+references:
+    - https://attack.mitre.org/techniques/T1649/
+    - https://attack.mitre.org/techniques/T1557/001/
+    - https://posts.specterops.io/certified-pre-owned-d95910965cd2
+author: blind-sqli detection/ (blue-team companion)
+date: 2026-09-27
+logsource:
+    category: webserver       # AD CS web enrollment runs on IIS
+detection:
+    selection_web_enrollment:
+        cs-uri-stem|contains: '/certsrv/'
+    selection_http:
+        s-port: 80            # served over cleartext HTTP (ESC8 precondition)
+    selection_relay_signature:
+        cs-username|endswith: '$'          # machine account enrolling via the web UI
+    selection_submit:
+        cs-method: 'POST'
+        cs-uri-stem|endswith:
+            - '/certfnsh.asp'   # certificate request submission
+            - '/certrqad.asp'
+    condition: selection_web_enrollment and (selection_http or selection_relay_signature or selection_submit)
+fields:
+    - c-ip
+    - cs-username
+    - cs-method
+    - cs-uri-stem
+    - s-port
+falsepositives:
+    - Legitimate interactive web enrollment by users over HTTP where HTTPS has not
+      been enforced. Remediate by forcing HTTPS + Extended Protection for
+      Authentication on the CA, then keep this rule to catch regressions.
+    - Health probes / monitoring that GET /certsrv over HTTP. Allowlist known
+      monitoring source IPs (c-ip).
+level: high
+tags:
+    - attack.credential-access
+    - attack.t1649       # Steal or Forge Authentication Certificates
+    - attack.t1557.001   # Adversary-in-the-Middle: LLMNR/NBT-NS Poisoning and SMB Relay
+    - attack.t1187       # Forced Authentication

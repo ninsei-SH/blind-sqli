@@ -1,0 +1,58 @@
+# NOTE: the `id` below is a FIXED PLACEHOLDER (all-ones UUID). Sigma requires a
+# stable per-rule UUIDv4 — regenerate a fresh one per deployment and paste it in,
+# e.g.  python3 -c "import uuid; print(uuid.uuid4())"
+# Do not ship two rules that share this placeholder.
+title: LLMNR/NBT-NS/mDNS Poisoning (On-Host Responder Indicators)
+id: 11111111-1111-1111-1111-111111111111   # placeholder — regenerate per deployment
+status: experimental
+description: >
+    Detects a Windows host emitting name-resolution replies from the LLMNR
+    (UDP 5355), NBT-NS (UDP 137) or mDNS (UDP 5353) source ports out of a
+    process that is not the OS resolver (svchost.exe). That is the network
+    position an attacker takes with Responder/Inveigh: answer broadcast/multicast
+    name queries for names the victim mistyped or that no longer exist, coerce an
+    NTLM handshake, and capture or relay it. This catches an on-host poisoner
+    (e.g. Inveigh in powershell.exe). A poisoner on a separate box with no Sysmon
+    is invisible here — pair this rule with the name-resolution honeytoken
+    described in detection/README.md.
+references:
+    - https://attack.mitre.org/techniques/T1557/001/
+    - https://github.com/lgandx/Responder
+    - https://github.com/Kevin-Robertson/Inveigh
+author: blind-sqli detection/ (blue-team companion)
+date: 2026-09-27
+logsource:
+    category: network_connection
+    product: windows          # Sysmon Event ID 3
+detection:
+    # A reply leaves the poisoner FROM the name-resolution port (SourcePort),
+    # not to it — the destination is the victim's ephemeral port.
+    selection_ports:
+        Protocol: udp
+        SourcePort:
+            - 137     # NBT-NS
+            - 5353    # mDNS
+            - 5355    # LLMNR
+    selection_initiated:
+        Initiated: 'true'
+    filter_os_resolver:
+        Image|endswith: '\svchost.exe'   # Windows' own LLMNR/mDNS answers — expected
+    condition: selection_ports and selection_initiated and not filter_os_resolver
+fields:
+    - Image
+    - SourceIp
+    - DestinationIp
+    - SourcePort
+    - DestinationPort
+falsepositives:
+    - Third-party name-resolution or service-discovery software (Bonjour/mDNS
+      printer agents, Chromecast discovery helpers) answering from these ports.
+      Baseline the answering Image list and allowlist known-good binaries.
+    - Environments where LLMNR/NBT-NS are still enabled by design. Disabling both
+      via GPO removes almost all legitimate answers and makes this rule
+      high-fidelity.
+level: high
+tags:
+    - attack.credential-access
+    - attack.collection
+    - attack.t1557.001   # Adversary-in-the-Middle: LLMNR/NBT-NS Poisoning and SMB Relay

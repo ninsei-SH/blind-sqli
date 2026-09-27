@@ -1,0 +1,62 @@
+# NOTE: the `id` below is a FIXED PLACEHOLDER (all-twos UUID). Sigma requires a
+# stable per-rule UUIDv4 — regenerate a fresh one per deployment and paste it in,
+# e.g.  python3 -c "import uuid; print(uuid.uuid4())"
+# Do not ship two rules that share this placeholder.
+title: Anomalous NTLM Network Logon With Relay Signatures
+id: 22222222-2222-2222-2222-222222222222   # placeholder — regenerate per deployment
+status: experimental
+description: >
+    Flags NTLM network logons (Security 4624/4625, LogonType 3, package NTLM)
+    that carry relay tell-tales: a null, blank or placeholder WorkstationName.
+    An NTLM relay (ntlmrelayx, Responder+MultiRelay, Inveigh relay) replays a
+    coerced NTLM handshake to a third host, so the session that lands on the
+    target rarely presents a WorkstationName that matches its true source — it is
+    frequently empty or missing. Correlate the source IP against the host that
+    name really belongs to (see detection/README.md) to confirm.
+references:
+    - https://attack.mitre.org/techniques/T1557/001/
+    - https://attack.mitre.org/techniques/T1187/
+    - https://github.com/fortra/impacket
+author: blind-sqli detection/ (blue-team companion)
+date: 2026-09-27
+logsource:
+    product: windows
+    service: security
+detection:
+    selection_ntlm:
+        EventID:
+            - 4624   # successful logon
+            - 4625   # failed logon
+        LogonType: 3                         # network logon
+        AuthenticationPackageName: 'NTLM'
+    selection_ws_anomaly:
+        WorkstationName:
+            - ''
+            - '-'
+            - null
+    filter_anonymous:
+        TargetUserName: 'ANONYMOUS LOGON'
+    filter_local:
+        IpAddress:
+            - '127.0.0.1'
+            - '::1'
+            - '-'
+    condition: selection_ntlm and selection_ws_anomaly and not 1 of filter_*
+fields:
+    - TargetUserName
+    - WorkstationName
+    - IpAddress
+    - LogonType
+    - AuthenticationPackageName
+falsepositives:
+    - Some appliances, non-domain clients and legacy applications send NTLM
+      Type 3 logons with an empty WorkstationName. Baseline first and allowlist
+      by TargetUserName / IpAddress.
+    - Load balancers or reverse proxies that terminate SMB/HTTP authentication on
+      behalf of clients.
+level: high
+tags:
+    - attack.credential-access
+    - attack.lateral-movement
+    - attack.t1557.001   # Adversary-in-the-Middle: LLMNR/NBT-NS Poisoning and SMB Relay
+    - attack.t1187       # Forced Authentication

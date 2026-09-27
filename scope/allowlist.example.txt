@@ -1,0 +1,14 @@
+# Example allowlist for: relay_orchestrator.py --allowlist scope/allowlist.txt
+#
+# One host or CIDR per line. Lines starting with # are comments; blank lines ignored.
+# These are the ONLY relay destinations the orchestrator will permit — any target
+# outside this list is refused before ntlmrelayx is ever invoked.
+#
+# Copy this file to scope/allowlist.txt and fill it with THIS engagement's
+# authorized targets (from ROE.md). scope/allowlist.txt is gitignored so real
+# engagement scope never gets committed.
+
+# --- examples (replace with real, authorized scope) ---
+# 10.0.0.0/24
+# 192.168.56.10
+# fileserver01.corp.local
